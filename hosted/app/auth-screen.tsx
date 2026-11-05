@@ -20,6 +20,7 @@ const copy = {
   weak_password:["Use a password with at least 12 characters.","密码至少需要 12 个字符。"], password_mismatch:["The passwords do not match.","两次输入的密码不一致。"],
   invalid_credentials:["The email or password is incorrect.","邮箱或密码不正确。"], email_not_confirmed:["Confirm your email address before signing in. Check your inbox for the verification link.","请先验证邮箱，检查收件箱中的验证链接。"],
   rate_limited:["Too many attempts. Please wait before trying again.","尝试次数过多，请稍后再试。"],
+  email_unavailable:["Verification email is not yet available for this address. Please contact the site owner.","此邮箱暂时无法接收注册验证邮件，请联系网站所有者。"],
   signup_failed:["We could not create the account. Try again later or contact the site owner.","暂时无法创建账号，请稍后重试或联系网站所有者。"],
   request_failed:["We could not complete your request. Please try again.","请求未完成，请稍后重试。"], reset_failed:["The password could not be updated. Try a different password or request a new reset link.","密码更新失败，请尝试其他密码或重新获取重置链接。"],
   session_expired:["Your session has expired. Request another password reset link.","会话已过期，请重新获取密码重置链接。"],

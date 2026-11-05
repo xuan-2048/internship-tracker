@@ -1,6 +1,17 @@
 # Email/password authentication rollout
 
-This change prepares independent email/password accounts through Supabase Auth. It is not active on the currently published Site until the provider is connected and the rollout steps below are completed.
+The independent email/password implementation is deployed and connected to Supabase project `xtwhmtdrglxiyaxxnetj`. The Site is still owner-private at the platform layer. Opening its entrypoint to ordinary visitors requires explicit user approval; an automatic review rejected the first audience-change attempt because that specific approval was missing.
+
+Configured and verified on November 5, 2026:
+
+- Supabase project healthy; email provider and new-user signup enabled; email confirmation required.
+- Minimum password length set to 12 characters.
+- Site URL and both exact callback URLs saved in the provider.
+- Sites runtime configuration set; no provider secret/admin key is used.
+- Production login page returns 200; anonymous application access returns 401; a synthetic invalid login returns 401 with `invalid_credentials`.
+- Deployment: `appgdep_6aecec7acb888191864a42f7c43737b0`; source: `6b42d7b7068ec3aac86111fee14de11bd0cfe5a6`.
+
+Remaining: explicit approval to make the Site entrypoint public; owner-performed real signup/email verification; custom SMTP for delivery to ordinary registrants. Default provider mail only delivers to project-team addresses.
 
 ## Implemented
 
@@ -14,7 +25,7 @@ This change prepares independent email/password accounts through Supabase Auth. 
 
 ## Required account connection
 
-Connect the Supabase plugin to the project owner's account. Select or create the intended project after confirming any account-level cost or resource requirements. Do not paste passwords or a Supabase service-role key into chat. This implementation only needs a project URL and its publishable key at runtime, not an admin key.
+The provider was configured through its authenticated dashboard because the installed Supabase connector returned unknown-tool errors. Reuse the existing project; do not create another. Do not paste passwords or a Supabase service-role key into chat. This implementation only needs a project URL and its publishable key at runtime, not an admin key.
 
 Configure these names through Sites runtime environment variables:
 
@@ -39,7 +50,7 @@ The new minimum password length is 12 characters. Passwords are sent to Supabase
 
 ## Site access transition
 
-Keep the currently published Site owner-private until real Supabase configuration and testing are complete. Publish the new authenticated version before changing the Site's access policy. The user has requested a standard registration/sign-in experience; changing the platform entrypoint to public lets visitors reach the login pages. Application data must continue to require provider-verified identity regardless of the platform audience.
+Keep the currently published Site owner-private until real Supabase configuration and testing are complete. The new authenticated version has been published. The platform entrypoint remains private until the user explicitly authorizes public access to this specific Site; changing it to public would let visitors reach the login pages. Application data must continue to require provider-verified identity regardless of the platform audience.
 
 After publication, verify anonymous requests receive 401, two real test users cannot access each other's records, and the browser can register and log in without a ChatGPT account. Do not use an empty configuration, test server, development mock sign-in, or client-supplied user ID as an authentication fallback.
 

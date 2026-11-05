@@ -24,7 +24,7 @@ export async function POST(request: Request, context: {params:Promise<{action:st
     }
     if (action === "register") {
       const {error} = await client.auth.signUp({email:values.email!,password:values.password!, options:{emailRedirectTo:`${new URL(request.url).origin}/auth/confirm`}});
-      if (error && error.code !== "user_already_exists") return json({error_code:error.status === 429 ? "rate_limited" : "signup_failed"},error.status === 429 ? 429 : 400);
+      if (error && error.code !== "user_already_exists") return json({error_code:error.status === 429 ? "rate_limited" : error.code === "email_address_not_authorized" ? "email_unavailable" : "signup_failed"},error.status === 429 ? 429 : 400);
       // Never disclose whether an address is already registered.
       return json({message_code:"check_email"});
     }

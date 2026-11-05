@@ -2,14 +2,14 @@
 
 This directory contains the authenticated, D1-backed version of Internship Tracker.
 
-**Pending change:** this branch prepares independent email/password accounts through Supabase Auth. The published Site still uses the previous ChatGPT gate. See [AUTH_SETUP.md](AUTH_SETUP.md) for the required connection, mail configuration, and safe rollout sequence.
+**Deployment status:** independent email/password authentication is deployed and connected to Supabase. The Site still has its owner-private platform gate until the owner explicitly approves making the entrypoint public. Real mailbox verification and production SMTP remain to be completed. See [AUTH_SETUP.md](AUTH_SETUP.md).
 The original Python/SQLite application remains available in the parent directory.
 
 ## Stack
 
 - Vinext / React / TypeScript server routes on Cloudflare Workers.
 - Cloudflare D1 with Drizzle schema migrations.
-- Supabase email/password authentication and server-verified sessions (pending provider configuration).
+- Supabase email/password authentication and server-verified sessions.
 - The same HTML/CSS/JavaScript interface, including English/Chinese selection and task due-date views.
 
 Every application row has an `owner_id`. Reads, updates, and deletes are scoped to the authenticated user; request bodies cannot set ownership. The API returns 401 when identity is missing and 404 for another user's record. Write requests reject cross-origin browser requests.
