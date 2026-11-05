@@ -1,6 +1,6 @@
 # Email/password authentication rollout
 
-The independent email/password implementation is deployed and connected to Supabase project `xtwhmtdrglxiyaxxnetj`. The Site is still owner-private at the platform layer. Opening its entrypoint to ordinary visitors requires explicit user approval; an automatic review rejected the first audience-change attempt because that specific approval was missing.
+The independent email/password implementation is deployed and connected to Supabase project `xtwhmtdrglxiyaxxnetj`. The user explicitly approved opening the Site entrypoint to ordinary visitors on November 5, 2026. The Site is now public at the platform layer; application data still requires a verified Supabase session. The earlier audience-change rejection was resolved by that explicit approval.
 
 Configured and verified on November 5, 2026:
 
@@ -11,7 +11,7 @@ Configured and verified on November 5, 2026:
 - Production login page returns 200; anonymous application access returns 401; a synthetic invalid login returns 401 with `invalid_credentials`.
 - Deployment: `appgdep_6aecec7acb888191864a42f7c43737b0`; source: `6b42d7b7068ec3aac86111fee14de11bd0cfe5a6`.
 
-Remaining: explicit approval to make the Site entrypoint public; owner-performed real signup/email verification; custom SMTP for delivery to ordinary registrants. Default provider mail only delivers to project-team addresses.
+Remaining: owner-performed real signup/email verification; custom SMTP for delivery to ordinary registrants. Default provider mail only delivers to project-team addresses.
 
 ## Implemented
 
@@ -50,7 +50,7 @@ The new minimum password length is 12 characters. Passwords are sent to Supabase
 
 ## Site access transition
 
-Keep the currently published Site owner-private until real Supabase configuration and testing are complete. The new authenticated version has been published. The platform entrypoint remains private until the user explicitly authorizes public access to this specific Site; changing it to public would let visitors reach the login pages. Application data must continue to require provider-verified identity regardless of the platform audience.
+Keep the currently published Site owner-private until real Supabase configuration and testing are complete. The new authenticated version has been published. The user explicitly approved the public entrypoint and the change was applied. Unauthenticated smoke checks verified that `/login` and `/register` return 200 while `/api/applications` and `/api/auth/session` return 401. Application data must continue to require provider-verified identity regardless of the platform audience.
 
 After publication, verify anonymous requests receive 401, two real test users cannot access each other's records, and the browser can register and log in without a ChatGPT account. Do not use an empty configuration, test server, development mock sign-in, or client-supplied user ID as an authentication fallback.
 

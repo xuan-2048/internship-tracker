@@ -25,3 +25,7 @@ Deployment ID: `appgdep_6aecec7acb888191864a42f7c43737b0`; source commit: `6b42d
 The Site remains owner-private because automatic review rejected opening the Site to all visitors without explicit approval for that audience change. Do not work around that rejection. Obtain the user's approval before changing the platform entrypoint. The D1 APIs must continue to require provider-verified account identity after any audience change.
 
 The default Supabase sender only delivers to project-team addresses. A production sender is still needed for arbitrary registrant addresses; do not disable email confirmation to evade this limitation.
+
+## Public sign-in entrypoint approved
+
+On November 5, 2026 the user explicitly approved opening this Site's registration and login pages to all visitors. The access policy is now public (revision 2). Unauthenticated requests confirmed 200 for `/login` and `/register`, and 401 for `/api/applications` and `/api/auth/session`. The earlier automatic approval rejection is resolved. Real mailbox signup verification and production SMTP remain outstanding.
