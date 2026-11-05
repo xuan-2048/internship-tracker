@@ -2,7 +2,7 @@
 
 This directory contains the authenticated, D1-backed version of Internship Tracker.
 
-**Deployment status:** independent email/password authentication is deployed and connected to Supabase. The Site still has its owner-private platform gate until the owner explicitly approves making the entrypoint public. Real mailbox verification and production SMTP remain to be completed. See [AUTH_SETUP.md](AUTH_SETUP.md).
+**Deployment status:** independent email/password authentication is deployed and connected to Supabase. The user approved a public registration/sign-in entrypoint; application data still requires a verified account. Real mailbox verification and production SMTP remain to be completed. See [AUTH_SETUP.md](AUTH_SETUP.md).
 The original Python/SQLite application remains available in the parent directory.
 
 ## Stack
