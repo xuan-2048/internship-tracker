@@ -1,30 +1,17 @@
-# Scheduled deployment handoff
+# Deployment status
 
-The user requested deployment and the GitHub update on **November 6, 2026, at 9:00 AM America/New_York**, rather than publishing the new changes today. A one-time heartbeat is attached to this chat. Read the latest chat before acting on this plan.
+Published on November 5, 2026 through Sites as an owner-private application.
 
-## Current local version
+- URL: https://internship-tracker-xuan.cheerfuloriole4.chatgpt.site
+- Site ID: `appgprj_6aecdf3893ec81919b3f01e615f95273`
+- Source commit for the first publication: `6aa762a0814e28c9cdd911b88293ba539e42c60d`
+- Deployment ID: `appgdep_6aece02c43548191b4a58ef7f53dc6ca`
+- Hosted source: `hosted/`; binding: `DB` (Cloudflare D1).
 
-- Python standard-library server, SQLite, static HTML/CSS/JavaScript.
-- Run `python3 backend/server.py`, or double-click `Start Tracker.command` on macOS.
-- New task fields: `next_step_due_date` (optional YYYY-MM-DD string) and `next_step_done` (JSON boolean).
-- Existing SQLite databases gain the new columns automatically without replacing records.
-- Pending views include overdue tasks and the next seven calendar days; completed tasks have their own view. Rejected and withdrawn applications are excluded from pending tasks.
-- Personal data is under ignored `data/`; never include it in a source upload.
+The successful deployment result and owner-only access policy were verified with the Sites tools. Local hosted-preview checks covered persisted CRUD, task completion, English/Chinese switching, anonymous API rejection, and cross-user read/update/delete isolation.
 
-## Hosted version to prepare during the scheduled follow-up
+The in-app browser reached the production sign-in gate, but its account-selection step returned an OpenAI authentication-page content-type error. An authenticated production CRUD session has not yet been verified. Use a normal browser and the owner's ChatGPT account to sign in; if the same error persists, investigate the platform login flow rather than weakening the Site's access policy.
 
-Use the Sites skill and its current instructions. The Python development server is not a production hosting target. Adapt the JSON API to the supported server runtime and durable database, preserving the current data contract, UI translations, and task behavior. Retain the local Python version and its startup instructions.
+Local personal data was not uploaded. The local Python application, hosted development database, and production D1 database are separate. Source visibility on GitHub does not grant access to the private Site. Keep source credentials, local data, `.wrangler/`, and environment files out of Git.
 
-The website is for the user's personal use. Keep the Site owner-private and protect the API as well as the page. Public GitHub source visibility does not authorize publishing personal application records. Use empty hosted storage initially; obtain explicit authorization before migrating local personal records to cloud storage. Explain that local and hosted databases are separate unless a migration or synchronization feature is implemented.
-
-No Site has been registered or deployed yet. Discover the actual hosting and access setup through the Sites tools. Avoid inventing a URL or implying that the current localhost URL is available from other devices.
-
-## Verification and delivery
-
-1. Run the Python integration tests and JavaScript task-date tests described in README.
-2. Verify hosted create/edit/status updates, task completion/reopening, and persistence with disposable demo records.
-3. Check English/Chinese switching and local-calendar task boundaries.
-4. Ensure another visitor cannot read or modify the user's data.
-5. Remove disposable demo records, publish the owner-private Site, and use the returned URL as deployment evidence.
-6. Push source and documentation to `xuan-2048/internship-tracker`, excluding local data and credentials.
-7. Give the user the working website URL and brief instructions. Report any remaining login or permission step concretely.
+For subsequent updates, reuse the Site ID in `hosted/.openai/hosting.json` and follow the Sites skill. Append schema migrations instead of rewriting applied SQL. Verify the current audience before choosing the private publication tool.

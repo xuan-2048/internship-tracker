@@ -1,8 +1,16 @@
 # Internship Tracker
 
-A local web application for students to organize internship applications, track recruiting stages, and keep their next steps in one place.
+A web application for students to organize internship applications, track recruiting stages, and keep their next steps in one place. Includes a local Python/SQLite version and a private hosted version.
 
-Built with **Python, SQLite, and vanilla JavaScript**, with no third-party runtime dependencies.
+The local version uses **Python, SQLite, and vanilla JavaScript**, with no third-party runtime dependencies. The hosted version adds **TypeScript, Vinext, Cloudflare D1, and ChatGPT sign-in**.
+
+## Hosted Website
+
+[Open Internship Tracker](https://internship-tracker-xuan.cheerfuloriole4.chatgpt.site)
+
+The hosted workspace is private and currently available only to the owner. Select **Continue with ChatGPT** and sign in with the account that owns the Site. The public repository is available for source review; it does not grant access to personal application records.
+
+Hosted records are stored online in D1 and scoped to the authenticated user. Local SQLite records are separate and are not automatically uploaded or synchronized. See [hosted/README.md](hosted/README.md) for the production implementation.
 
 ## Features
 
@@ -150,7 +158,7 @@ To back up your records, stop the server and copy `data/tracker.db` to a separat
 
 ## Current Scope
 
-This is a **single-user local development application**, bound to `127.0.0.1`. It has no authentication or user isolation. The Python standard-library HTTP server is intended for local development; a public deployment would require production serving infrastructure, authentication, and user-level data access controls.
+The **local Python version** is a single-user development application bound to `127.0.0.1`; it has no authentication or user isolation and should not be exposed to the internet. The **hosted version** uses Sites-managed authentication, owner-private access, a production Worker, and user-scoped D1 database queries.
 
 Each application has one next-step task with an optional calendar due date and completion state. The default task view includes overdue tasks and the next seven days, independently of application-list filters. Rejected and withdrawn applications are excluded from pending tasks; completed tasks remain available in the Completed view. Dates follow the browser’s local calendar, including across midnight and daylight-saving changes. There are no email or system notifications yet. Status updates replace the current status; a status-history timeline is not implemented yet.
 
@@ -163,7 +171,7 @@ Existing local databases are automatically upgraded with the new task fields; pr
 - [ ] Application status history.
 - [ ] CSV import and export.
 - [ ] Browser extension for saving job postings.
-- [ ] Authentication, user isolation, and production deployment.
+- [x] Hosted authentication, user isolation, and owner-private production deployment.
 
 ## References
 

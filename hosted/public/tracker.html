@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Track internship applications, next steps, and deadlines.">
+  <title>Internship Tracker · Application Dashboard</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/cloud.js" defer></script>
+  <script src="/i18n.js" defer></script>
+  <script src="/tasks.js" defer></script>
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <aside class="sidebar">
+    <a class="brand" href="/" data-i18n-aria="home" aria-label="Internship Tracker home"><span class="brand-icon">it.</span><span>Internship<br>Tracker</span></a>
+    <p class="nav-caption"><span data-i18n="workspace">YOUR WORKSPACE</span></p>
+    <a class="nav-item" href="/" aria-current="page"><span aria-hidden="true">▦</span> <span data-i18n="overview">Overview</span></a>
+    <div class="sidebar-bottom"><span class="live-dot"></span> <span data-i18n="local">Local workspace</span><p><span data-i18n="closer">One step closer to your next opportunity.</span></p></div>
+  </aside>
+  <main>
+    <header><div><p class="eyebrow"><span data-i18n="chapter">YOUR NEXT CHAPTER</span></p><h1><span data-i18n="headline">Your next opportunity starts here.</span></h1><p class="subtitle"><span data-i18n="subtitle">Track your applications. Know your next step.</span></p></div><div class="header-actions"><label class="language-picker"><span class="sr-only">Language / 语言</span><select id="language-select"><option value="en">English</option><option value="zh">简体中文</option></select></label><button class="primary" id="add-button"><span data-i18n="add">+ Add application</span></button></div></header>
+    <section class="stats" data-i18n-aria="stats" aria-label="Application statistics">
+      <article><span><span data-i18n="total">Total opportunities</span></span><strong id="total-count">0</strong><small><span data-i18n="totalHint">Every possibility, in one place</span></small></article>
+      <article><span><span data-i18n="active">In progress</span></span><strong id="active-count">0</strong><small><span data-i18n="activeHint">Applied · Assessment · Interview</span></small></article>
+      <article><span><span data-i18n="interviewing">Interviewing</span></span><strong id="interview-count">0</strong><small><span data-i18n="interviewHint">Get ready for your next conversation</span></small></article>
+      <article class="offer-stat"><span><span data-i18n="offers">Offers received</span></span><strong id="offer-count">0</strong><small><span data-i18n="offersHint">Progress worth celebrating</span></small></article>
+    </section>
+    <section class="workspace tasks-workspace" aria-labelledby="tasks-heading">
+      <div class="section-heading"><div><h2 id="tasks-heading" data-i18n="tasksHeading">Next up</h2><p data-i18n="tasksHint">Overdue tasks and the next 7 days, across all applications.</p></div><label class="task-view"><span class="sr-only" data-i18n="taskView">Task view</span><select id="task-filter"><option value="upcoming" data-i18n-option="upcomingView">Overdue + next 7 days</option><option value="overdue" data-i18n-option="overdueView">Overdue</option><option value="today" data-i18n-option="todayView">Due today</option><option value="completed" data-i18n-option="completedView">Completed</option></select></label></div>
+      <div id="task-list" class="task-list"></div><p id="task-empty" class="task-empty" hidden></p>
+    </section>
+    <section class="workspace" aria-labelledby="list-heading">
+      <div class="section-heading"><div><h2 id="list-heading"><span data-i18n="applications">My applications</span></h2><p id="result-count">Loading…</p></div><span class="workspace-label"><span data-i18n="applicationLabel">APPLICATIONS</span></span></div>
+      <div class="filters"><label class="search"><span aria-hidden="true">⌕</span><input id="search" type="search" data-i18n-placeholder="search" placeholder="Search companies, roles, or notes" data-i18n-aria="search" aria-label="Search companies, roles, or notes"></label><label class="sr-only" for="status-filter"><span data-i18n="filterStatus">Filter by status</span></label><select id="status-filter"><option value="">All statuses</option></select><label class="check-filter"><input type="checkbox" id="action-filter"> <span data-i18n="hasNext">Has a next step</span></label></div>
+      <p id="load-error" class="error" role="alert" hidden></p><button id="retry-button" class="secondary" hidden><span data-i18n="retry">Retry</span></button>
+      <div class="table-wrap"><table><thead><tr><th scope="col"><span data-i18n="companyRole">Company / Role</span></th><th scope="col"><span data-i18n="status">Status</span></th><th scope="col"><span data-i18n="appliedDate">Date applied</span></th><th scope="col"><span data-i18n="nextDeadline">Next step / Deadline</span></th><th scope="col"><span data-i18n="actions">Actions</span></th></tr></thead><tbody id="application-list"></tbody></table></div>
+      <div id="empty-state" class="empty" hidden><span class="empty-icon" aria-hidden="true">↗</span><h3 id="empty-title"><span data-i18n="emptyTitle">Start with your first opportunity</span></h3><p id="empty-description"><span data-i18n="emptyDescription">Save a role you like or log an application you have already sent.</span></p><button id="empty-add" class="primary"><span data-i18n="first">+ Add your first application</span></button></div>
+    </section>
+    <footer><span data-i18n="pace">Your search. Your pace.</span><span><span data-i18n="stored">Stored on your device · v0.1</span></span></footer>
+  </main>
+  <dialog id="application-dialog" aria-labelledby="dialog-title">
+    <form id="application-form" novalidate>
+      <div class="dialog-heading"><div><p class="eyebrow"><span data-i18n="opportunity">ONE MORE OPPORTUNITY</span></p><h2 id="dialog-title"><span data-i18n="addTitle">Add application</span></h2></div><div class="header-actions"><label class="language-picker"><span class="sr-only">Language / 语言</span><select id="form-language-select"><option value="en">English</option><option value="zh">简体中文</option></select></label><button type="button" id="close-dialog" class="icon-button" data-i18n-aria="close" aria-label="Close form">×</button></div></div>
+      <div class="form-grid">
+        <label><span><span data-i18n="company">Company</span> <span class="required">*</span></span><input name="company" required maxlength="160" data-i18n-placeholder="companyPlaceholder" placeholder="e.g., Acme"></label>
+        <label><span><span data-i18n="role">Role</span> <span class="required">*</span></span><input name="role" required maxlength="200" data-i18n-placeholder="rolePlaceholder" placeholder="e.g., Software Engineer Intern"></label>
+        <label class="full"><span data-i18n="url">Job posting URL</span><input name="url" type="url" maxlength="2000" placeholder="https://..."></label>
+        <label><span data-i18n="applicationStatus">Application status</span><select name="status" id="form-status"></select></label>
+        <label><span data-i18n="appliedDate">Date applied</span><input name="applied_date" type="date"></label>
+        <label class="full"><span data-i18n="next">Next step</span><input name="next_step" maxlength="300" data-i18n-placeholder="nextPlaceholder" placeholder="e.g., Prepare for an interview or complete an assessment"></label>
+        <label><span data-i18n="taskDue">Task due date</span><input name="next_step_due_date" type="date"></label>
+        <label class="full task-done-label"><input name="next_step_done" type="checkbox"><span data-i18n="taskDoneLabel">Next step completed</span></label>
+        <label><span data-i18n="deadline">Application deadline</span><input name="deadline" type="date"></label>
+        <label class="full"><span data-i18n="notes">Notes</span><textarea name="notes" rows="3" maxlength="10000" data-i18n-placeholder="notesPlaceholder" placeholder="Resume version, interview notes, or anything to remember…"></textarea></label>
+      </div>
+      <p id="form-error" class="error" role="alert" hidden></p>
+      <div class="dialog-actions"><button type="button" id="cancel-dialog" class="secondary"><span data-i18n="cancel">Cancel</span></button><button type="submit" class="primary" id="save-button"><span data-i18n="save">Save application</span></button></div>
+    </form>
+  </dialog>
+  <div id="toast" class="toast" role="status" hidden></div>
+</body>
+</html>
