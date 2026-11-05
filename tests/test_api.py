@@ -70,7 +70,7 @@ class ApplicationAPI(unittest.TestCase):
         self.assertEqual(self.request("PUT", "/api/applications/999", {"company": "Acme", "role": "Intern"})[0], 404)
 
     def test_assets_and_request_boundaries(self):
-        for asset in ("/", "/app.js", "/styles.css"):
+        for asset in ("/", "/app.js", "/i18n.js", "/styles.css"):
             self.assertEqual(self.request("GET", asset)[0], 200)
         for asset in ("/.git/config", "/data/tracker.db", "/../backend/server.py"):
             self.assertEqual(self.request("GET", asset)[0], 404)

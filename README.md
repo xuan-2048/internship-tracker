@@ -15,7 +15,7 @@ Built with **Python, SQLite, and vanilla JavaScript**, with no third-party runti
 - **Persistent storage:** retain records across page refreshes and server restarts using SQLite.
 - **Responsive layout:** adapt the interface to narrow screens, with horizontal scrolling for the application table.
 
-The current interface is in Simplified Chinese. English UI support is planned.
+Use the language selector to switch between **English** and **Simplified Chinese**. English is the default; your preference is saved in browser local storage. Switching languages preserves application data, filters, and unsaved form values. API errors are translated for display in the selected language.
 
 ## Quick Start
 
@@ -73,7 +73,8 @@ internship-tracker/
 ├── frontend/
 │   ├── index.html      # Dashboard and application form
 │   ├── styles.css      # Styling and responsive layout
-│   └── app.js          # UI interactions and API requests
+│   ├── app.js          # UI interactions and API requests
+│   └── i18n.js         # English / Chinese UI translations
 ├── tests/
 │   └── test_api.py     # API integration tests
 ├── data/               # Generated local data; excluded from Git
@@ -144,7 +145,7 @@ Next steps are text records only: automated reminders and task due dates are not
 
 ## Roadmap
 
-- [ ] English interface support.
+- [x] English and Simplified Chinese interface with a persistent language preference.
 - [ ] Task due dates and an upcoming-task view.
 - [ ] Application status history.
 - [ ] CSV import and export.

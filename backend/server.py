@@ -39,24 +39,24 @@ def init_db(path):
 
 def validate(payload):
     if not isinstance(payload, dict) or set(payload) - set(FIELDS):
-        raise ValueError("请提交有效的申请字段。")
+        raise ValueError("Please submit valid application fields.")
     values = {}
     for key in FIELDS:
         value = payload.get(key, "saved" if key == "status" else "")
         if not isinstance(value, str) or len(value) > LIMITS[key]:
-            raise ValueError(f"{key} 字段类型不正确或内容过长。")
+            raise ValueError(f"The {key} field must be text within the allowed length.")
         values[key] = value.strip()
     if not values["company"] or not values["role"]:
-        raise ValueError("公司和岗位不能为空。")
+        raise ValueError("Company and role are required.")
     if values["status"] not in STATUSES:
-        raise ValueError("请选择有效的申请状态。")
+        raise ValueError("Please select a valid application status.")
     for key in ("applied_date", "deadline"):
         if values[key]:
             try:
                 if date.fromisoformat(values[key]).isoformat() != values[key]:
                     raise ValueError()
             except ValueError:
-                raise ValueError("日期需要使用 YYYY-MM-DD 格式。") from None
+                raise ValueError("Dates must be valid and use YYYY-MM-DD format.") from None
     if values["url"]:
         try:
             parsed = urlsplit(values["url"])
@@ -64,7 +64,7 @@ def validate(payload):
         except ValueError:
             valid = False
         if not valid:
-            raise ValueError("职位链接需要以 http:// 或 https:// 开头并包含域名。")
+            raise ValueError("The job URL must start with http:// or https:// and include a hostname.")
     return values
 
 
@@ -89,9 +89,10 @@ class Handler(BaseHTTPRequestHandler):
         # Explicit assets only: never serve the database, Git metadata or source.
         assets = {"/": ("index.html", "text/html; charset=utf-8"),
                   "/app.js": ("app.js", "text/javascript; charset=utf-8"),
+                  "/i18n.js": ("i18n.js", "text/javascript; charset=utf-8"),
                   "/styles.css": ("styles.css", "text/css; charset=utf-8")}
         if path not in assets:
-            self.send_json(404, {"error": "页面不存在。"})
+            self.send_json(404, {"error": "Page not found."})
             return
         filename, content_type = assets[path]
         data = (ROOT / "frontend" / filename).read_bytes()
@@ -108,30 +109,30 @@ class Handler(BaseHTTPRequestHandler):
         allowed = {f"127.0.0.1:{self.server.server_port}", f"localhost:{self.server.server_port}"}
         origin = self.headers.get("Origin")
         if host not in allowed or (origin and origin != f"http://{host}"):
-            self.send_json(403, {"error": "请求来源不被允许。"})
+            self.send_json(403, {"error": "Request origin is not allowed."})
             return
         path = urlsplit(self.path).path
         item_id = None
         if method != "POST":
             parts = path.split("/")
             if len(parts) != 4 or parts[:3] != ["", "api", "applications"] or not parts[3].isascii() or not parts[3].isdigit():
-                self.send_json(404, {"error": "申请不存在。"})
+                self.send_json(404, {"error": "Application not found."})
                 return
             item_id = int(parts[3])
             if item_id > 9223372036854775807:
-                self.send_json(404, {"error": "申请不存在。"})
+                self.send_json(404, {"error": "Application not found."})
                 return
         elif path != "/api/applications":
-            self.send_json(404, {"error": "接口不存在。"})
+            self.send_json(404, {"error": "Endpoint not found."})
             return
         try:
             if method != "DELETE":
                 if self.headers.get("Content-Type", "").split(";")[0].strip() != "application/json":
-                    self.send_json(415, {"error": "需要 application/json 请求。"})
+                    self.send_json(415, {"error": "Content-Type must be application/json."})
                     return
                 length = int(self.headers.get("Content-Length", "0"))
                 if not 0 < length <= 65536:
-                    raise ValueError("请求为空或过大。")
+                    raise ValueError("The request body is empty or too large.")
                 values = validate(json.loads(self.rfile.read(length)))
             with closing(connect(self.server.db_path)) as db, db:
                 if method == "POST":
@@ -141,7 +142,7 @@ class Handler(BaseHTTPRequestHandler):
                     item_id = cursor.lastrowid
                 else:
                     if not db.execute("SELECT id FROM applications WHERE id = ?", (item_id,)).fetchone():
-                        self.send_json(404, {"error": "申请不存在。"})
+                        self.send_json(404, {"error": "Application not found."})
                         return
                     if method == "DELETE":
                         db.execute("DELETE FROM applications WHERE id = ?", (item_id,))
@@ -151,9 +152,9 @@ class Handler(BaseHTTPRequestHandler):
                 row = db.execute("SELECT * FROM applications WHERE id = ?", (item_id,)).fetchone()
             self.send_json(201 if method == "POST" else 200, dict(row) if row else {"deleted": item_id})
         except (ValueError, UnicodeDecodeError) as error:
-            self.send_json(400, {"error": str(error) if not isinstance(error, json.JSONDecodeError) else "JSON 格式不正确。"})
+            self.send_json(400, {"error": str(error) if not isinstance(error, json.JSONDecodeError) else "Invalid JSON."})
         except sqlite3.Error:
-            self.send_json(500, {"error": "保存失败，请稍后重试。"})
+            self.send_json(500, {"error": "Could not save changes. Please try again."})
 
     def do_POST(self):
         self.mutate("POST")

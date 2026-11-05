@@ -1,29 +1,60 @@
-const statuses = {saved: '待申请', applied: '已申请', assessment: '笔试', interview: '面试', offer: 'Offer', rejected: '拒绝', withdrawn: '已撤回'};
+const statusCodes = ['saved', 'applied', 'assessment', 'interview', 'offer', 'rejected', 'withdrawn'];
 const fields = ['company', 'role', 'url', 'status', 'applied_date', 'deadline', 'next_step', 'notes'];
 const $ = (selector) => document.querySelector(selector);
 let applications = [];
 let editingId = null;
 let toastTimer;
+let toastError = null;
 let busy = false;
 
-for (const [value, label] of Object.entries(statuses)) {
-  $('#status-filter').add(new Option(label, value));
-  $('#form-status').add(new Option(label, value));
+let formError = null;
+let loadError = null;
+let loaded = false;
+
+function updateLanguage() {
+  document.documentElement.lang = language === 'zh' ? 'zh-CN' : 'en';
+  document.title = t('title');
+  document.querySelector('meta[name="description"]').content = t('description');
+  document.querySelectorAll('[data-i18n]').forEach(node => { node.textContent = t(node.dataset.i18n); });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(node => { node.placeholder = t(node.dataset.i18nPlaceholder); });
+  document.querySelectorAll('[data-i18n-aria]').forEach(node => { node.setAttribute('aria-label', t(node.dataset.i18nAria)); });
+  for (const selector of ['#status-filter', '#form-status']) {
+    const select = $(selector);
+    const selected = select.value;
+    select.replaceChildren();
+    if (selector === '#status-filter') select.add(new Option(t('allStatuses'), ''));
+    for (const value of statusCodes) select.add(new Option(t(value), value));
+    select.value = selected || (selector === '#form-status' ? 'saved' : '');
+  }
+  for (const selector of ['#language-select', '#form-language-select']) $(selector).value = language;
+  $('#dialog-title').textContent = t(editingId ? 'editTitle' : 'addTitle');
+  $('#save-button').textContent = t(busy ? 'saving' : 'save');
+  if (formError) $('#form-error').textContent = translatedError(formError.message);
+  if (loadError) {
+    $('#result-count').textContent = t('loadFailed');
+    $('#load-error').textContent = t('loadError', {error: translatedError(loadError.message)});
+  } else if (loaded) render();
+  else $('#result-count').textContent = t('loading');
+  if (toastError) $('#toast').textContent = translatedError(toastError.message);
+  else if ($('#toast').dataset.key) $('#toast').textContent = t($('#toast').dataset.key);
 }
+
 
 async function api(path = '', options = {}) {
   const response = await fetch(`/api/applications${path}`, {
     ...options,
     headers: {'Content-Type': 'application/json', ...options.headers},
-  });
+  }).catch(() => { throw new Error(messages.networkError[0]); });
   const body = await response.json();
-  if (!response.ok) throw new Error(body.error || '操作失败，请重试。');
+  if (!response.ok) throw new Error(body.error || messages.genericError[0]);
   return body;
 }
 
-function toast(message) {
+function toast(key, error = null) {
+  toastError = error;
   clearTimeout(toastTimer);
-  $('#toast').textContent = message;
+  $('#toast').dataset.key = error ? '' : key;
+  $('#toast').textContent = error ? translatedError(error.message) : t(key);
   $('#toast').hidden = false;
   toastTimer = setTimeout(() => { $('#toast').hidden = true; }, 3500);
 }
@@ -45,7 +76,7 @@ function render() {
   const rows = applications.filter(a => (!status || a.status === status)
     && (!$('#action-filter').checked || a.next_step)
     && [a.company, a.role, a.notes].some(s => s.toLocaleLowerCase().includes(query)));
-  $('#result-count').textContent = `显示 ${rows.length} 条，共 ${applications.length} 条机会`;
+  $('#result-count').textContent = t('count', {shown: rows.length, total: applications.length});
   $('#application-list').replaceChildren();
   for (const application of rows) {
     const tr = document.createElement('tr');
@@ -64,8 +95,8 @@ function render() {
     job.append(identity);
     const progress = document.createElement('td');
     const select = element('select', undefined, `status-select ${application.status}`);
-    select.setAttribute('aria-label', `${application.company} 的申请状态`);
-    for (const [value, label] of Object.entries(statuses)) select.add(new Option(label, value));
+    select.setAttribute('aria-label', t('statusFor', {company: application.company}));
+    for (const value of statusCodes) select.add(new Option(t(value), value));
     select.value = application.status;
     select.addEventListener('change', async () => {
       select.disabled = true;
@@ -75,31 +106,31 @@ function render() {
         const updated = await api(`/${application.id}`, {method: 'PUT', body: JSON.stringify(payload)});
         applications = applications.map(a => a.id === updated.id ? updated : a);
         render();
-        toast('申请状态已更新');
+        toast('statusUpdated');
       } catch (error) {
         select.value = application.status;
-        toast(error.message);
+        toast(null, error);
       } finally { select.disabled = false; }
     });
     progress.append(select);
     const step = document.createElement('td');
-    step.append(element('span', application.next_step || '暂未设置', application.next_step ? 'next-step' : 'muted'));
-    if (application.deadline) step.append(element('small', `申请截止 ${application.deadline}`, 'deadline'));
+    step.append(element('span', application.next_step || t('noNext'), application.next_step ? 'next-step' : 'muted'));
+    if (application.deadline) step.append(element('small', t('applyBy', {date: application.deadline}), 'deadline'));
     const actions = document.createElement('td');
-    const edit = element('button', '编辑', 'text-button');
-    edit.setAttribute('aria-label', `编辑 ${application.company} 的申请`);
+    const edit = element('button', t('edit'), 'text-button');
+    edit.setAttribute('aria-label', t('editFor', {company: application.company}));
     edit.addEventListener('click', () => openForm(application));
-    const remove = element('button', '删除', 'text-button delete-button');
-    remove.setAttribute('aria-label', `删除 ${application.company} 的申请`);
+    const remove = element('button', t('delete'), 'text-button delete-button');
+    remove.setAttribute('aria-label', t('deleteFor', {company: application.company}));
     remove.addEventListener('click', async () => {
-      if (!window.confirm(`确定删除 ${application.company} 的「${application.role}」申请吗？此操作无法撤销。`)) return;
+      if (!window.confirm(t('confirmDelete', {role: application.role, company: application.company}))) return;
       remove.disabled = true;
       try {
         await api(`/${application.id}`, {method: 'DELETE'});
         applications = applications.filter(a => a.id !== application.id);
         render();
-        toast('申请已删除');
-      } catch (error) { toast(error.message); remove.disabled = false; }
+        toast('deleted');
+      } catch (error) { toast(null, error); remove.disabled = false; }
     });
     actions.append(edit, remove);
     tr.append(job, progress, element('td', application.applied_date || '—', 'date-cell'), step, actions);
@@ -107,16 +138,18 @@ function render() {
   }
   $('.table-wrap').hidden = rows.length === 0;
   $('#empty-state').hidden = rows.length !== 0;
-  $('#empty-title').textContent = applications.length ? '没有匹配的申请' : '从第一个机会开始';
-  $('#empty-description').textContent = applications.length ? '试试其他关键词，或调整筛选条件。' : '收藏一个心仪的岗位，或者记录已经投出的申请。';
+  $('#empty-title').textContent = t(applications.length ? 'noMatches' : 'emptyTitle');
+  $('#empty-description').textContent = t(applications.length ? 'adjustFilters' : 'emptyDescription');
   $('#empty-add').hidden = applications.length > 0;
 }
 
 function openForm(application = null) {
   editingId = application?.id ?? null;
   $('#application-form').reset();
+  $('#form-language-select').value = language;
+  formError = null;
   $('#form-error').hidden = true;
-  $('#dialog-title').textContent = editingId ? '编辑申请' : '新增申请';
+  $('#dialog-title').textContent = t(editingId ? 'editTitle' : 'addTitle');
   if (application) for (const key of fields) $('#application-form').elements[key].value = application[key];
   $('#application-dialog').showModal();
 }
@@ -127,21 +160,23 @@ $('#application-form').addEventListener('submit', async event => {
   const payload = Object.fromEntries(new FormData(event.target));
   busy = true;
   $('#save-button').disabled = true;
-  $('#save-button').textContent = '正在保存…';
+  $('#save-button').textContent = t('saving');
+  formError = null;
   $('#form-error').hidden = true;
   try {
     const updated = await api(editingId ? `/${editingId}` : '', {method: editingId ? 'PUT' : 'POST', body: JSON.stringify(payload)});
     applications = editingId ? applications.map(a => a.id === updated.id ? updated : a) : [updated, ...applications];
     $('#application-dialog').close();
     render();
-    toast(editingId ? '申请已更新' : '新的机会已记录');
+    toast(editingId ? 'updated' : 'created');
   } catch (error) {
-    $('#form-error').textContent = error.message;
+    formError = error;
+    $('#form-error').textContent = translatedError(error.message);
     $('#form-error').hidden = false;
   } finally {
     busy = false;
     $('#save-button').disabled = false;
-    $('#save-button').textContent = '保存申请';
+    $('#save-button').textContent = t('save');
   }
 });
 $('#application-dialog').addEventListener('cancel', event => { if (busy) event.preventDefault(); });
@@ -153,17 +188,28 @@ $('#action-filter').addEventListener('change', render);
 $('#retry-button').addEventListener('click', load);
 
 async function load() {
+  loadError = null;
   $('#load-error').hidden = true;
   $('#retry-button').hidden = true;
   $('#retry-button').disabled = true;
   try {
     applications = await api();
+    loaded = true;
     render();
   } catch (error) {
-    $('#result-count').textContent = '加载失败';
-    $('#load-error').textContent = `无法加载申请：${error.message} 请确认本地服务正在运行。`;
+    loadError = error;
+    $('#result-count').textContent = t('loadFailed');
+    $('#load-error').textContent = t('loadError', {error: translatedError(error.message)});
     $('#load-error').hidden = false;
     $('#retry-button').hidden = false;
   } finally { $('#retry-button').disabled = false; }
 }
+for (const selector of ['#language-select', '#form-language-select']) {
+  $(selector).addEventListener('change', event => {
+    language = event.target.value === 'zh' ? 'zh' : 'en';
+    try { localStorage.setItem('tracker-language', language); } catch { /* Keep working without storage. */ }
+    updateLanguage();
+  });
+}
+updateLanguage();
 load();
