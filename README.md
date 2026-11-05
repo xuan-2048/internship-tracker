@@ -1,14 +1,16 @@
 # Internship Tracker
 
-A web application for students to organize internship applications, track recruiting stages, and keep their next steps in one place. Includes a local Python/SQLite version and a private hosted version.
+A web application for students to organize internship applications, track recruiting stages, and keep their next steps in one place. Includes a local Python/SQLite version and a hosted version with account-based access.
 
-The local version uses **Python, SQLite, and vanilla JavaScript**, with no third-party runtime dependencies. The hosted version adds **TypeScript, Vinext, Cloudflare D1, and ChatGPT sign-in**.
+The local version uses **Python, SQLite, and vanilla JavaScript**, with no third-party runtime dependencies. The hosted version adds **TypeScript, Vinext, Cloudflare D1, and Supabase email/password authentication**.
 
 ## Hosted Website
 
 [Open Internship Tracker](https://internship-tracker-xuan.cheerfuloriole4.chatgpt.site)
 
-The hosted workspace is private and currently available only to the owner. Select **Continue with ChatGPT** and sign in with the account that owns the Site. The public repository is available for source review; it does not grant access to personal application records.
+The registration and sign-in pages are publicly accessible; application records require a verified account and are scoped to that account. A ChatGPT account is not required.
+
+**Email delivery limitation:** the current Supabase default sender only delivers verification and recovery messages to project-team addresses. General public registration needs a production SMTP sender. Real mailbox signup, email confirmation, and recovery still need owner-performed verification. See [authentication setup and verification status](hosted/AUTH_SETUP.md).
 
 Hosted records are stored online in D1 and scoped to the authenticated user. Local SQLite records are separate and are not automatically uploaded or synchronized. See [hosted/README.md](hosted/README.md) for the production implementation.
 
@@ -21,7 +23,8 @@ Hosted records are stored online in D1 and scoped to the authenticated user. Loc
 - **Next up:** see overdue tasks, tasks due today, or tasks due within the next seven days; complete or reopen a task.
 - **Search and filters:** search companies, roles, and notes; filter by status or applications with a next step.
 - **Dashboard:** view counts for all opportunities, active applications, interviews, and offers.
-- **Persistent storage:** retain records across page refreshes and server restarts using SQLite.
+- **Persistent storage:** use SQLite locally or Cloudflare D1 in the hosted version.
+- **Account access (hosted):** email/password pages, confirmation and recovery callbacks, server-verified sessions, HttpOnly cookies, and per-user API authorization. Mailbox delivery remains subject to the limitation above.
 - **Responsive layout:** adapt the interface to narrow screens, with horizontal scrolling for the application table.
 
 Use the language selector to switch between **English** and **Simplified Chinese**. English is the default; your preference is saved in browser local storage. Switching languages preserves application data, filters, and unsaved form values. API errors are translated for display in the selected language.
@@ -70,10 +73,15 @@ Browser form
 | Backend | Python standard library | HTTP routing, field validation, and database access |
 | Database | SQLite | Local persistent application records |
 | Tests | Python unittest | HTTP API integration tests using temporary databases |
+| Hosted backend | TypeScript / Vinext on Cloudflare Workers | JSON routes and account authorization |
+| Hosted database | Cloudflare D1 / Drizzle | Persistent records scoped to a verified user ID |
+| Hosted identity | Supabase Auth / SSR | Email/password sessions and confirmation/recovery flows |
 
 SQL statements use parameterized values. User-provided text is rendered through DOM `textContent`. The server exposes an explicit list of frontend assets rather than serving the project directory.
 
 Search and filtering currently run in the browser after loading application records, keeping the first version simple for a personal application list.
+
+In the hosted version, the server validates the Supabase user before every application request and applies an owner predicate to database reads, updates, and deletes. The browser cannot submit its own owner ID. Passwords are handled by Supabase Auth, not stored in the application database.
 
 ## Project Structure
 
@@ -90,6 +98,7 @@ internship-tracker/
 ├── tests/
 │   ├── test_api.py     # API integration tests
 │   └── tasks.test.cjs  # Task date boundary tests
+├── hosted/             # TypeScript production server, auth pages, and D1 migrations
 ├── data/               # Generated local data; excluded from Git
 ├── .gitignore
 └── README.md
@@ -148,7 +157,17 @@ node --check frontend/tasks.js
 TZ=America/New_York node --test tests/tasks.test.cjs
 ```
 
-Node.js is not required to run the application.
+Node.js is not required to run the local Python version. The hosted version has its own Node.js dependency lockfile and checks:
+
+```bash
+cd hosted
+npm run install:ci
+node node_modules/typescript/bin/tsc --noEmit
+node --test tests/auth-input.test.cjs
+npm run build
+```
+
+Validation completed: five local API tests, three task-calendar tests, four auth-input/redirect tests, and a hosted production build. A local synthetic-provider integration test verified cookies, login/logout, recovery responses, cross-origin rejection, and per-user isolation. Production smoke checks verified the login/register pages return 200, anonymous data requests return 401, and invalid credentials are rejected. This does not replace real mailbox verification.
 
 ## Local Data
 
@@ -158,7 +177,7 @@ To back up your records, stop the server and copy `data/tracker.db` to a separat
 
 ## Current Scope
 
-The **local Python version** is a single-user development application bound to `127.0.0.1`; it has no authentication or user isolation and should not be exposed to the internet. The **hosted version** uses Sites-managed authentication, owner-private access, a production Worker, and user-scoped D1 database queries.
+The **local Python version** is a single-user development application bound to `127.0.0.1`; it has no authentication or user isolation and should not be exposed to the internet. The **hosted version** has a public sign-in entrypoint, Supabase-verified sessions, a production Worker, and user-scoped D1 database queries. It retains the email-delivery and verification limitations documented above.
 
 Each application has one next-step task with an optional calendar due date and completion state. The default task view includes overdue tasks and the next seven days, independently of application-list filters. Rejected and withdrawn applications are excluded from pending tasks; completed tasks remain available in the Completed view. Dates follow the browser’s local calendar, including across midnight and daylight-saving changes. There are no email or system notifications yet. Status updates replace the current status; a status-history timeline is not implemented yet.
 
@@ -171,7 +190,8 @@ Existing local databases are automatically upgraded with the new task fields; pr
 - [ ] Application status history.
 - [ ] CSV import and export.
 - [ ] Browser extension for saving job postings.
-- [x] Hosted authentication, user isolation, and owner-private production deployment.
+- [x] Hosted email/password authentication, per-user API authorization, and deployment.
+- [ ] Production SMTP and owner-performed signup/confirmation/recovery verification.
 
 ## References
 

@@ -47,6 +47,7 @@ async function api(path = '', options = {}) {
     headers: {'Content-Type': 'application/json', ...options.headers},
   }).catch(() => { throw new Error(messages.networkError[0]); });
   const body = await response.json();
+  if (response.status === 401) window.location.assign("/login");
   if (!response.ok) throw new Error(body.error || messages.genericError[0]);
   return body;
 }

@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
-import { requireChatGPTUser } from "./chatgpt-auth";
+import { currentUser } from "./auth-provider";
 export const dynamic = "force-dynamic";
 export default async function Home() {
-  await requireChatGPTUser("/");
-  redirect("/tracker.html");
+  redirect(await currentUser() ? "/tracker.html" : "/login");
 }
