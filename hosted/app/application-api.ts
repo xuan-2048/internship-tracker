@@ -1,7 +1,7 @@
 import { and, desc, eq } from "drizzle-orm";
 import { getDb } from "../db";
 import { applications } from "../db/schema";
-import { getChatGPTUser } from "./chatgpt-auth";
+import { currentUser } from "./auth-provider";
 
 const fields = ["company", "role", "url", "status", "applied_date", "deadline", "next_step", "notes", "next_step_due_date", "next_step_done"] as const;
 const limits: Record<string, number> = {company:160, role:200, url:2000, status:30, applied_date:10, deadline:10, next_step:300, notes:10000, next_step_due_date:10};
@@ -56,8 +56,8 @@ function publicRecord(row: typeof applications.$inferSelect) {
 }
 
 export async function handleApplications(request: Request, id?: string): Promise<Response> {
-  const user = await getChatGPTUser();
-  if (!user) return json({error:"Please sign in to use your private workspace."}, 401);
+  const user = await currentUser();
+  if (!user) return json({error:"Please sign in to continue."}, 401);
   const method = request.method;
   if (method !== "GET") {
     const origin = request.headers.get("Origin");
@@ -71,11 +71,11 @@ export async function handleApplications(request: Request, id?: string): Promise
   try {
     const db = getDb();
     if (method === "GET" && id === undefined) {
-      const rows = await db.select().from(applications).where(eq(applications.owner_id,user.userId)).orderBy(desc(applications.created_at),desc(applications.id));
+      const rows = await db.select().from(applications).where(eq(applications.owner_id,user.ownerId)).orderBy(desc(applications.created_at),desc(applications.id));
       return json(rows.map(publicRecord));
     }
     if (method === "DELETE" && number !== undefined) {
-      const deleted = await db.delete(applications).where(and(eq(applications.id,number), eq(applications.owner_id,user.userId))).returning({id:applications.id});
+      const deleted = await db.delete(applications).where(and(eq(applications.id,number), eq(applications.owner_id,user.ownerId))).returning({id:applications.id});
       return deleted.length ? json({deleted:number}) : json({error:"Application not found."},404);
     }
     if (!["POST","PUT"].includes(method)) return json({error:"Endpoint not found."},404);
@@ -90,11 +90,11 @@ export async function handleApplications(request: Request, id?: string): Promise
     try { values = validate(payload); } catch (error) { return json({error:(error as Error).message},400); }
     const now = new Date().toISOString();
     if (method === "POST" && id === undefined) {
-      const [row] = await db.insert(applications).values({...values,owner_id:user.userId,created_at:now,updated_at:now}).returning();
+      const [row] = await db.insert(applications).values({...values,owner_id:user.ownerId,created_at:now,updated_at:now}).returning();
       return json(publicRecord(row),201);
     }
     if (method === "PUT" && number !== undefined) {
-      const [row] = await db.update(applications).set({...values,updated_at:now}).where(and(eq(applications.id,number),eq(applications.owner_id,user.userId))).returning();
+      const [row] = await db.update(applications).set({...values,updated_at:now}).where(and(eq(applications.id,number),eq(applications.owner_id,user.ownerId))).returning();
       return row ? json(publicRecord(row)) : json({error:"Application not found."},404);
     }
     return json({error:"Endpoint not found."},404);
