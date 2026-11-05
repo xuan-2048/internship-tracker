@@ -7,6 +7,7 @@
   <title>Internship Tracker · Application Dashboard</title>
   <link rel="stylesheet" href="/styles.css">
   <script src="/i18n.js" defer></script>
+  <script src="/tasks.js" defer></script>
   <script src="/app.js" defer></script>
 </head>
 <body>
@@ -23,6 +24,10 @@
       <article><span><span data-i18n="active">In progress</span></span><strong id="active-count">0</strong><small><span data-i18n="activeHint">Applied · Assessment · Interview</span></small></article>
       <article><span><span data-i18n="interviewing">Interviewing</span></span><strong id="interview-count">0</strong><small><span data-i18n="interviewHint">Get ready for your next conversation</span></small></article>
       <article class="offer-stat"><span><span data-i18n="offers">Offers received</span></span><strong id="offer-count">0</strong><small><span data-i18n="offersHint">Progress worth celebrating</span></small></article>
+    </section>
+    <section class="workspace tasks-workspace" aria-labelledby="tasks-heading">
+      <div class="section-heading"><div><h2 id="tasks-heading" data-i18n="tasksHeading">Next up</h2><p data-i18n="tasksHint">Overdue tasks and the next 7 days, across all applications.</p></div><label class="task-view"><span class="sr-only" data-i18n="taskView">Task view</span><select id="task-filter"><option value="upcoming" data-i18n-option="upcomingView">Overdue + next 7 days</option><option value="overdue" data-i18n-option="overdueView">Overdue</option><option value="today" data-i18n-option="todayView">Due today</option><option value="completed" data-i18n-option="completedView">Completed</option></select></label></div>
+      <div id="task-list" class="task-list"></div><p id="task-empty" class="task-empty" hidden></p>
     </section>
     <section class="workspace" aria-labelledby="list-heading">
       <div class="section-heading"><div><h2 id="list-heading"><span data-i18n="applications">My applications</span></h2><p id="result-count">Loading…</p></div><span class="workspace-label"><span data-i18n="applicationLabel">APPLICATIONS</span></span></div>
@@ -43,6 +48,8 @@
         <label><span data-i18n="applicationStatus">Application status</span><select name="status" id="form-status"></select></label>
         <label><span data-i18n="appliedDate">Date applied</span><input name="applied_date" type="date"></label>
         <label class="full"><span data-i18n="next">Next step</span><input name="next_step" maxlength="300" data-i18n-placeholder="nextPlaceholder" placeholder="e.g., Prepare for an interview or complete an assessment"></label>
+        <label><span data-i18n="taskDue">Task due date</span><input name="next_step_due_date" type="date"></label>
+        <label class="full task-done-label"><input name="next_step_done" type="checkbox"><span data-i18n="taskDoneLabel">Next step completed</span></label>
         <label><span data-i18n="deadline">Application deadline</span><input name="deadline" type="date"></label>
         <label class="full"><span data-i18n="notes">Notes</span><textarea name="notes" rows="3" maxlength="10000" data-i18n-placeholder="notesPlaceholder" placeholder="Resume version, interview notes, or anything to remember…"></textarea></label>
       </div>

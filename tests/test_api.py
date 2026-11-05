@@ -1,6 +1,7 @@
 from contextlib import closing
 import http.client
 import json
+import sqlite3
 from pathlib import Path
 import sys
 import tempfile
@@ -70,13 +71,41 @@ class ApplicationAPI(unittest.TestCase):
         self.assertEqual(self.request("PUT", "/api/applications/999", {"company": "Acme", "role": "Intern"})[0], 404)
 
     def test_assets_and_request_boundaries(self):
-        for asset in ("/", "/app.js", "/i18n.js", "/styles.css"):
+        for asset in ("/", "/app.js", "/i18n.js", "/tasks.js", "/styles.css"):
             self.assertEqual(self.request("GET", asset)[0], 200)
         for asset in ("/.git/config", "/data/tracker.db", "/../backend/server.py"):
             self.assertEqual(self.request("GET", asset)[0], 404)
         self.assertEqual(self.request("POST", body={"company": "A", "role": "B"},
                                       headers={"Content-Type": "application/json", "Origin": "https://example.com"})[0], 403)
         self.assertEqual(self.request("POST", body={}, headers={"Content-Type": "text/plain"})[0], 415)
+
+    def test_task_due_date_and_completion(self):
+        payload = {"company": "Acme", "role": "Intern", "next_step": "Complete assessment",
+                   "next_step_due_date": "2026-11-06", "next_step_done": False}
+        status, row = self.request("POST", body=payload)
+        self.assertEqual(status, 201)
+        self.assertIs(row["next_step_done"], False)
+        payload["next_step_done"] = True
+        status, row = self.request("PUT", f'/api/applications/{row["id"]}', payload)
+        self.assertEqual(status, 200)
+        self.assertIs(row["next_step_done"], True)
+        self.assertEqual(row["next_step_due_date"], "2026-11-06")
+        self.assertIs(self.request("GET")[1][0]["next_step_done"], True)
+        for bad in ({"next_step_due_date": "2026-02-30"}, {"next_step_done": "true"}, {"next_step": ""}):
+            self.assertEqual(self.request("POST", body={**payload, **bad})[0], 400)
+
+    def test_upgrade_preserves_existing_records(self):
+        legacy = Path(self.temp.name) / "legacy.db"
+        with sqlite3.connect(legacy) as db:
+            db.execute("CREATE TABLE applications (id INTEGER PRIMARY KEY, company TEXT, role TEXT)")
+            db.execute("INSERT INTO applications VALUES (1, 'Existing company', 'Intern')")
+        init_db(legacy)
+        init_db(legacy)
+        with closing(connect(legacy)) as db:
+            row = db.execute("SELECT * FROM applications WHERE id = 1").fetchone()
+        self.assertEqual(row["company"], "Existing company")
+        self.assertEqual(row["next_step_due_date"], "")
+        self.assertEqual(row["next_step_done"], 0)
 
 
 if __name__ == "__main__":

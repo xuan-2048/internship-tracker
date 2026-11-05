@@ -11,9 +11,10 @@ from urllib.parse import urlsplit
 
 ROOT = Path(__file__).resolve().parents[1]
 STATUSES = ("saved", "applied", "assessment", "interview", "offer", "rejected", "withdrawn")
-FIELDS = ("company", "role", "url", "status", "applied_date", "deadline", "next_step", "notes")
+FIELDS = ("company", "role", "url", "status", "applied_date", "deadline", "next_step", "notes", "next_step_due_date", "next_step_done")
 LIMITS = {"company": 160, "role": 200, "url": 2000, "status": 30,
-          "applied_date": 10, "deadline": 10, "next_step": 300, "notes": 10000}
+          "applied_date": 10, "deadline": 10, "next_step": 300, "notes": 10000,
+          "next_step_due_date": 10}
 
 
 def connect(path):
@@ -35,6 +36,12 @@ def init_db(path):
             created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
             updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
         )""")
+        # Upgrade existing personal databases without replacing their records.
+        columns = {row["name"] for row in db.execute("PRAGMA table_info(applications)")}
+        if "next_step_due_date" not in columns:
+            db.execute("ALTER TABLE applications ADD COLUMN next_step_due_date TEXT NOT NULL DEFAULT ''")
+        if "next_step_done" not in columns:
+            db.execute("ALTER TABLE applications ADD COLUMN next_step_done INTEGER NOT NULL DEFAULT 0")
 
 
 def validate(payload):
@@ -42,6 +49,12 @@ def validate(payload):
         raise ValueError("Please submit valid application fields.")
     values = {}
     for key in FIELDS:
+        if key == "next_step_done":
+            value = payload.get(key, False)
+            if not isinstance(value, bool):
+                raise ValueError("Task completion must be true or false.")
+            values[key] = value
+            continue
         value = payload.get(key, "saved" if key == "status" else "")
         if not isinstance(value, str) or len(value) > LIMITS[key]:
             raise ValueError(f"The {key} field must be text within the allowed length.")
@@ -50,13 +63,15 @@ def validate(payload):
         raise ValueError("Company and role are required.")
     if values["status"] not in STATUSES:
         raise ValueError("Please select a valid application status.")
-    for key in ("applied_date", "deadline"):
+    for key in ("applied_date", "deadline", "next_step_due_date"):
         if values[key]:
             try:
                 if date.fromisoformat(values[key]).isoformat() != values[key]:
                     raise ValueError()
             except ValueError:
                 raise ValueError("Dates must be valid and use YYYY-MM-DD format.") from None
+    if not values["next_step"] and (values["next_step_due_date"] or values["next_step_done"]):
+        raise ValueError("Add a next step before setting its due date or marking it complete.")
     if values["url"]:
         try:
             parsed = urlsplit(values["url"])
@@ -66,6 +81,12 @@ def validate(payload):
         if not valid:
             raise ValueError("The job URL must start with http:// or https:// and include a hostname.")
     return values
+
+
+def application_json(row):
+    result = dict(row)
+    result["next_step_done"] = bool(result["next_step_done"])
+    return result
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -84,12 +105,13 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/applications":
             with closing(connect(self.server.db_path)) as db:
                 rows = db.execute("SELECT * FROM applications ORDER BY created_at DESC, id DESC").fetchall()
-            self.send_json(200, [dict(row) for row in rows])
+            self.send_json(200, [application_json(row) for row in rows])
             return
         # Explicit assets only: never serve the database, Git metadata or source.
         assets = {"/": ("index.html", "text/html; charset=utf-8"),
                   "/app.js": ("app.js", "text/javascript; charset=utf-8"),
                   "/i18n.js": ("i18n.js", "text/javascript; charset=utf-8"),
+                  "/tasks.js": ("tasks.js", "text/javascript; charset=utf-8"),
                   "/styles.css": ("styles.css", "text/css; charset=utf-8")}
         if path not in assets:
             self.send_json(404, {"error": "Page not found."})
@@ -150,7 +172,7 @@ class Handler(BaseHTTPRequestHandler):
                         assignments = ", ".join(f"{key} = ?" for key in FIELDS)
                         db.execute(f"UPDATE applications SET {assignments}, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ?", (*values.values(), item_id))
                 row = db.execute("SELECT * FROM applications WHERE id = ?", (item_id,)).fetchone()
-            self.send_json(201 if method == "POST" else 200, dict(row) if row else {"deleted": item_id})
+            self.send_json(201 if method == "POST" else 200, application_json(row) if row else {"deleted": item_id})
         except (ValueError, UnicodeDecodeError) as error:
             self.send_json(400, {"error": str(error) if not isinstance(error, json.JSONDecodeError) else "Invalid JSON."})
         except sqlite3.Error:

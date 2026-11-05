@@ -1,5 +1,5 @@
 const statusCodes = ['saved', 'applied', 'assessment', 'interview', 'offer', 'rejected', 'withdrawn'];
-const fields = ['company', 'role', 'url', 'status', 'applied_date', 'deadline', 'next_step', 'notes'];
+const fields = ['company', 'role', 'url', 'status', 'applied_date', 'deadline', 'next_step', 'notes', 'next_step_due_date', 'next_step_done'];
 const $ = (selector) => document.querySelector(selector);
 let applications = [];
 let editingId = null;
@@ -26,6 +26,7 @@ function updateLanguage() {
     for (const value of statusCodes) select.add(new Option(t(value), value));
     select.value = selected || (selector === '#form-status' ? 'saved' : '');
   }
+  document.querySelectorAll('[data-i18n-option]').forEach(node => { node.textContent = t(node.dataset.i18nOption); });
   for (const selector of ['#language-select', '#form-language-select']) $(selector).value = language;
   $('#dialog-title').textContent = t(editingId ? 'editTitle' : 'addTitle');
   $('#save-button').textContent = t(busy ? 'saving' : 'save');
@@ -67,6 +68,7 @@ function element(tag, text, className) {
 }
 
 function render() {
+  renderTasks();
   $('#total-count').textContent = applications.length;
   $('#active-count').textContent = applications.filter(a => ['applied', 'assessment', 'interview'].includes(a.status)).length;
   $('#interview-count').textContent = applications.filter(a => a.status === 'interview').length;
@@ -115,6 +117,8 @@ function render() {
     progress.append(select);
     const step = document.createElement('td');
     step.append(element('span', application.next_step || t('noNext'), application.next_step ? 'next-step' : 'muted'));
+    if (application.next_step_due_date) step.append(element('small', t('taskDueOn', {date: application.next_step_due_date}), 'deadline'));
+    if (application.next_step_done) step.append(element('small', t('completed'), 'task-completed-label'));
     if (application.deadline) step.append(element('small', t('applyBy', {date: application.deadline}), 'deadline'));
     const actions = document.createElement('td');
     const edit = element('button', t('edit'), 'text-button');
@@ -150,7 +154,11 @@ function openForm(application = null) {
   formError = null;
   $('#form-error').hidden = true;
   $('#dialog-title').textContent = t(editingId ? 'editTitle' : 'addTitle');
-  if (application) for (const key of fields) $('#application-form').elements[key].value = application[key];
+  if (application) for (const key of fields) {
+    const input = $('#application-form').elements[key];
+    if (key === 'next_step_done') input.checked = application[key];
+    else input.value = application[key];
+  }
   $('#application-dialog').showModal();
 }
 
@@ -158,6 +166,7 @@ $('#application-form').addEventListener('submit', async event => {
   event.preventDefault();
   if (busy) return;
   const payload = Object.fromEntries(new FormData(event.target));
+  payload.next_step_done = event.target.elements.next_step_done.checked;
   busy = true;
   $('#save-button').disabled = true;
   $('#save-button').textContent = t('saving');
@@ -186,6 +195,7 @@ $('#search').addEventListener('input', render);
 $('#status-filter').addEventListener('change', render);
 $('#action-filter').addEventListener('change', render);
 $('#retry-button').addEventListener('click', load);
+$('#task-filter').addEventListener('change', renderTasks);
 
 async function load() {
   loadError = null;
@@ -213,3 +223,49 @@ for (const selector of ['#language-select', '#form-language-select']) {
 }
 updateLanguage();
 load();
+
+
+function renderTasks() {
+  const filter = $('#task-filter').value;
+  const tasks = dueTasks(applications, filter);
+  $('#task-list').replaceChildren();
+  $('#task-empty').hidden = tasks.length > 0;
+  $('#task-empty').textContent = t(filter === 'completed' ? 'noCompletedTasks' : 'noDueTasks');
+  for (const application of tasks) {
+    const row = element('article', undefined, 'task-row');
+    const state = taskState(application);
+    const info = element('div', undefined, 'task-info');
+    info.append(element('strong', application.next_step), element('small', `${application.company} · ${application.role}`));
+    const date = element('div', undefined, 'task-date');
+    date.append(element('span', t(state), `task-badge ${state}`));
+    if (application.next_step_due_date) date.append(element('small', application.next_step_due_date));
+    const toggle = element('button', t(application.next_step_done ? 'markIncomplete' : 'markComplete'), 'secondary task-toggle');
+    toggle.setAttribute('aria-label', t(application.next_step_done ? 'reopenFor' : 'completeFor', {company: application.company}));
+    toggle.addEventListener('click', async () => {
+      toggle.disabled = true;
+      try {
+        const payload = Object.fromEntries(fields.map(key => [key, application[key]]));
+        payload.next_step_done = !application.next_step_done;
+        const updated = await api(`/${application.id}`, {method: 'PUT', body: JSON.stringify(payload)});
+        applications = applications.map(a => a.id === updated.id ? updated : a);
+        render();
+        toast('taskUpdated');
+      } catch (error) { toast(null, error); toggle.disabled = false; }
+    });
+    const edit = element('button', t('edit'), 'text-button');
+    edit.setAttribute('aria-label', t('editFor', {company: application.company}));
+    edit.addEventListener('click', () => openForm(application));
+    const actions = element('div', undefined, 'task-actions');
+    actions.append(edit, toggle);
+    row.append(info, date, actions);
+    $('#task-list').append(row);
+  }
+}
+// Refresh calendar classifications at local midnight, including after laptop sleep.
+let calendarDay = localDateString();
+function refreshDay() {
+  const today = localDateString();
+  if (today !== calendarDay && loaded) { calendarDay = today; render(); }
+}
+setInterval(refreshDay, 60000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshDay(); });
